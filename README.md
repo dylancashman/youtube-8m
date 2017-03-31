@@ -1,3 +1,37 @@
+# youtube_8m_tufts
+This is a fork of the github repo supporting the youtube 8m dataset.  
+
+This will hopefully result in a submission to the Youtube 8M kaggle competition, final project for COMP 150DL
+
+## Running locally
+
+This is largely based off of the guide given in the starter github.
+
+https://github.com/google/youtube-8m#running-on-your-own-machine
+
+### Getting data
+
+I recommend that you start with some frame-level data, but DON'T CHECK IT INTO THE REPO.  I've add a `.gitignore` that should ignore anything in the local_data folder.  To get a frame-level shard, from the app root:
+
+    curl data.yt8m.org/download.py | shard=1,1000 partition=1/frame_level/train mirror=us python
+
+It should be about 1.7 gb in total.
+
+To get a video level shard:
+
+    gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina0.tfrecord local_data/
+
+
+### Libraries used
+
+- tensorflow 0.12.1
+
+
+
+----------
+
+# Legacy README.md
+
 # YouTube-8M Tensorflow Starter Code
 
 This repo contains starter code for training and evaluating machine learning
