@@ -11,20 +11,97 @@ https://github.com/google/youtube-8m#running-on-your-own-machine
 
 ### Getting data
 
-I recommend that you start with some frame-level data, but DON'T CHECK IT INTO THE REPO.  I've add a `.gitignore` that should ignore anything in the local_data folder.  To get a frame-level shard, from the app root:
+I recommend that you start with some frame-level data, but DON'T CHECK IT INTO THE REPO.  I've add a `.gitignore` that should ignore anything in the local_data folder.  To get a frame-level shard of training, from the app root:
 
     curl data.yt8m.org/download.py | shard=1,1000 partition=1/frame_level/train mirror=us python
 
 It should be about 1.7 gb in total.
 
-To get a video level shard:
+We do the same thing with the validation and testing set
 
-    gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina0.tfrecord local_data/
+    curl data.yt8m.org/download.py | shard=1,1000 partition=1/frame_level/validate mirror=us python
+
+    curl data.yt8m.org/download.py | shard=1,1000 partition=1/frame_level/test mirror=us python
+
+Move all the resulting data files into `local_data/`
+
+### Running training, validation, results
+
+#### AWS
+
+To run training on AWS, make sure you are in the virtual env, and that your tensorflow version is > 1, and that you've downloaded the data above
+
+    MODEL_DIR=/tmp/yt8m-dcashm01
+
+	python train.py --train_data_pattern='local_data/train*.tfrecord' --model=FrameLevelLogisticModel \
+	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	--frame_features=True --feature_names="rgb" \
+	--features_sizes="1024" --batch_size=128
 
 
-### Libraries used
+Then, validation.  Validation - usually we use the loss or accuracy on validation to choose hyperparameters on the model.
 
-- tensorflow 0.12.1
+	python eval.py --eval_data_pattern='local_data/validate*.tfrecord' --model=FrameLevelLogisticModel \
+	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	--frame_features=True --feature_names="rgb" \
+	--features_sizes="1024" --batch_size=128 \
+	--run_once=True
+
+Lastly, testing.  This produces predictions (scores over the classes per frame, I think).  If you just want to get the evaluation metrics, you can just run the above command, but on the test features.
+
+	python inference.py --input_data_pattern='local_data/test*.tfrecord' --model=FrameLevelLogisticModel \
+	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	--frame_features=True --feature_names="rgb" \
+	--features_sizes="1024" --batch_size=128 \
+	--output_file=$MODEL_DIR/frame_level_logistic_model/predictions.csv
+
+#### Google Cloud
+
+On Google cloud, you'll need to start up an instance and go to the console.  You'll want to clone this repo into your home directory on the console, so it's running our version fo the code.  Then, the following commands should work.
+
+First, training.
+
+	BUCKET_NAME=gs://${USER}_yt8m_train_bucket
+
+	JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+	submit training $JOB_NAME \
+	--package-path=youtube-8m --module-name=youtube-8m.train \
+	--staging-bucket=$BUCKET_NAME --region=us-east1 \
+	--config=youtube-8m/cloudml-gpu.yaml \
+	-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/traina0.tfrecord' \
+	--frame_features=True --model=FrameLevelLogisticModel --feature_names="rgb" \
+	--feature_sizes="1024" --batch_size=128 \
+	--train_dir=$BUCKET_NAME/yt8m_train_frame_level_logistic_model
+	
+I was having trouble seeing the status of this as it ran, so I needed to go into the web interface. Then, scrolling down on the left sidebar, under Jobs, click on ML Engine.  You should see a jobs status list.
+
+
+Then, validation.
+
+	JOB_TO_EVAL=yt8m_train_frame_level_logistic_model
+	JOB_NAME=yt8m_eval_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+	submit training $JOB_NAME \
+	--package-path=youtube-8m --module-name=youtube-8m.eval \
+	--staging-bucket=$BUCKET_NAME --region=us-east1 \
+	--config=youtube-8m/cloudml-gpu.yaml \
+	-- --eval_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/validate/validatea0.tfrecord' \
+	--frame_features=True --model=FrameLevelLogisticModel --feature_names="rgb" \
+	--feature_sizes="1024" --batch_size=128 \
+	--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} --run_once=True
+
+Lastly, testing
+
+	JOB_TO_EVAL=yt8m_train_frame_level_logistic_model
+	JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+	submit training $JOB_NAME \
+	--package-path=youtube-8m --module-name=youtube-8m.inference \
+	--staging-bucket=$BUCKET_NAME --region=us-east1 \
+	--config=youtube-8m/cloudml-gpu.yaml \
+	-- --input_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/test/testa0.tfrecord' \
+	--frame_features=True --model=FrameLevelLogisticModel --feature_names="rgb" \
+	--feature_sizes="1024" --batch_size=128 \
+	--train_dir=$BUCKET_NAME/${JOB_TO_EVAL} \
+	--output_file=$BUCKET_NAME/${JOB_TO_EVAL}/predictions.csv
 
 
 
