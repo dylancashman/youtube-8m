@@ -408,7 +408,8 @@ class Trainer(object):
     
     # Limit GPU usage
     # http://stackoverflow.com/questions/34199233/how-to-prevent-tensorflow-from-allocating-the-totality-of-a-gpu-memory
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+    #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
+    gpu_options = tf.GPUOptions(allow_growth=True)
 
     limitconfig=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True, log_device_placement=self.log_device_placement)
     logging.info("%s: Starting managed session.", task_as_string(self.task))
