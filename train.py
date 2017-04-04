@@ -404,9 +404,16 @@ class Trainer(object):
         save_model_secs=15 * 60,
         save_summaries_secs=120,
         saver=saver)
+    
+    # Limit GPU usage
+    # http://stackoverflow.com/questions/34199233/how-to-prevent-tensorflow-from-allocating-the-totality-of-a-gpu-memory
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 
+    limitconfig=tf.ConfigProto(gpu_options=gpu_options)
+    
     logging.info("%s: Starting managed session.", task_as_string(self.task))
-    with sv.managed_session(target, config=self.config) as sess:
+#    with sv.managed_session(target, config=self.config) as sess:
+    with sv.managed_session(target, config=limitconfig) as sess:
       try:
         logging.info("%s: Entering training loop.", task_as_string(self.task))
         while (not sv.should_stop()) and (not self.max_steps_reached):
