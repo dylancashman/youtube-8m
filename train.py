@@ -361,6 +361,7 @@ class Trainer(object):
     self.max_steps_reached = False
     self.export_model_steps = export_model_steps
     self.last_model_export_step = 0
+    self.log_device_placement = log_device_placement
 
 #     if self.is_master and self.task.index > 0:
 #       raise StandardError("%s: Only one replica of master expected",
@@ -409,8 +410,7 @@ class Trainer(object):
     # http://stackoverflow.com/questions/34199233/how-to-prevent-tensorflow-from-allocating-the-totality-of-a-gpu-memory
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 
-    limitconfig=tf.ConfigProto(gpu_options=gpu_options)
-    
+    limitconfig=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True, log_device_placement=self.log_device_placement)
     logging.info("%s: Starting managed session.", task_as_string(self.task))
 #    with sv.managed_session(target, config=self.config) as sess:
     with sv.managed_session(target, config=limitconfig) as sess:
