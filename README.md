@@ -33,24 +33,24 @@ To run training on AWS, make sure you are in the virtual env, and that your tens
 
     MODEL_DIR=/tmp/yt8m-dcashm01
 
-	python train.py --train_data_pattern='local_data/train*.tfrecord' --model=FrameLevelLogisticModel \
-	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	python train.py --train_data_pattern='/a/data/yt8m/train*.tfrecord' --model=GruModel \
+	--train_dir=$MODEL_DIR/gru_model \
 	--frame_features=True --feature_names="rgb" \
 	--features_sizes="1024" --batch_size=128
 
 
 Then, validation.  Validation - usually we use the loss or accuracy on validation to choose hyperparameters on the model.
 
-	python eval.py --eval_data_pattern='local_data/validate*.tfrecord' --model=FrameLevelLogisticModel \
-	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	python eval.py --eval_data_pattern='/a/data/yt8m/validate*.tfrecord' --model=GruModel \
+	--train_dir=$MODEL_DIR/gru_model \
 	--frame_features=True --feature_names="rgb" \
 	--features_sizes="1024" --batch_size=128 \
 	--run_once=True
 
 Lastly, testing.  This produces predictions (scores over the classes per frame, I think).  If you just want to get the evaluation metrics, you can just run the above command, but on the test features.
 
-	python inference.py --input_data_pattern='local_data/test*.tfrecord' --model=FrameLevelLogisticModel \
-	--train_dir=$MODEL_DIR/frame_level_logistic_model \
+	python inference.py --input_data_pattern='/a/data/yt8m/test*.tfrecord' --model=GruModel \
+	--train_dir=$MODEL_DIR/gru_model \
 	--frame_features=True --feature_names="rgb" \
 	--features_sizes="1024" --batch_size=128 \
 	--output_file=$MODEL_DIR/frame_level_logistic_model/predictions.csv
