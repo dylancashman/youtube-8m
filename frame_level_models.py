@@ -294,19 +294,23 @@ class BidirectionalGruModel(models.BaseModel):
       model in the 'predictions' key. The dimensions of the tensor are
       'batch_size' x 'num_classes'.
     """
+
     lstm_size = FLAGS.lstm_cells
     number_of_layers = FLAGS.lstm_layers
 
-    stacked_gru = tf.contrib.rnn.MultiRNNCell(
-            [
-                tf.contrib.rnn.GRUCell(
-                    lstm_size)
-                for _ in range(number_of_layers)
-                ], state_is_tuple=False)
+    # looks like we can't do a stacked bidirectional rnn
+    gru_fw = tf.contrib.rnn.GRUCell(lstm_size)
+    gru_bw = tf.contrib.rnn.GRUCell(lstm_size)
+    # stacked_gru = tf.contrib.rnn.MultiRNNCell(
+    #         [
+    #             tf.contrib.rnn.GRUCell(
+    #                 lstm_size)
+    #             for _ in range(number_of_layers)
+    #             ], state_is_tuple=False)
 
     loss = 0.0
 
-    outputs, state = tf.nn.bidirectional_dynamic_rnn(stacked_gru, stacked_gru, model_input,
+    outputs, state = tf.nn.bidirectional_dynamic_rnn(gru_fw, gru_bw, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
 
