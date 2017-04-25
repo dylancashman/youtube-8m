@@ -277,11 +277,56 @@ class GruModel(models.BaseModel):
         vocab_size=vocab_size,
         **unused_params)
 
+class BidirectionalGruModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, num_frames, **unused_params):
+    """Creates a model which uses a bidirectional stack of Gated Recurrent Units to represent the video.
+
+    Args:
+      model_input: A 'batch_size' x 'max_frames' x 'num_features' matrix of
+                   input features.
+      vocab_size: The number of classes in the dataset.
+      num_frames: A vector of length 'batch' which indicates the number of
+           frames for each video (before padding).
+
+    Returns:
+      A dictionary with a tensor containing the probability predictions of the
+      model in the 'predictions' key. The dimensions of the tensor are
+      'batch_size' x 'num_classes'.
+    """
+
+    lstm_size = FLAGS.lstm_cells
+    number_of_layers = FLAGS.lstm_layers
+
+    # looks like we can't do a stacked bidirectional rnn
+    gru_fw = tf.contrib.rnn.GRUCell(lstm_size)
+    gru_bw = tf.contrib.rnn.GRUCell(lstm_size)
+    # stacked_gru = tf.contrib.rnn.MultiRNNCell(
+    #         [
+    #             tf.contrib.rnn.GRUCell(
+    #                 lstm_size)
+    #             for _ in range(number_of_layers)
+    #             ], state_is_tuple=False)
+
+    loss = 0.0
+
+    outputs, state = tf.nn.bidirectional_dynamic_rnn(gru_fw, gru_bw, model_input,
+                                       sequence_length=num_frames,
+                                       dtype=tf.float32)
+
+    aggregated_model = getattr(video_level_models,
+                               FLAGS.video_level_classifier_model)
+
+    return aggregated_model().create_model(
+        model_input=state,
+        vocab_size=vocab_size,
+        **unused_params)
+
+
 class GridLstmModel(models.BaseModel):
 
   def create_model(self, model_input, vocab_size, num_frames, **unused_params):
     """Creates a model which uses a stack of Gated Recurrent Units to represent the video.
-
     Args:
       model_input: A 'batch_size' x 'max_frames' x 'num_features' matrix of
                    input features.
@@ -299,14 +344,15 @@ class GridLstmModel(models.BaseModel):
 
     stacked_grid_lstm = tf.contrib.rnn.MultiRNNCell(
             [
-                tf.contrib.rnn.GridLSTMCell(
-                    lstm_size, forget_bias=1.0, state_is_tuple=False)
+                tf.contrib.grid_rnn.Grid2LSTMCell(
+                    lstm_size, forget_bias=1.0)
                 for _ in range(number_of_layers)
                 ], state_is_tuple=False)
 
     loss = 0.0
-
-    outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, model_input,
+    outputs, state = tf.rnn.seq2seq.rnn_decoder(model_input,
+                                       self.initial_state,
+                                       stacked_grid_lstm,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
 
