@@ -31,20 +31,29 @@ Move all the resulting data files into `local_data/`
 
 To run training on AWS, make sure you are in the virtual env, and that your tensorflow version is > 1, and that you've downloaded the data above
 
-    MODEL_DIR=/tmp/yt8m-dcashm01
+  MODEL_DIR=/a/data/yt8m/
 
 	python train.py --train_data_pattern='/a/data/yt8m/train*.tfrecord' --model=GruModel \
-	--train_dir=$MODEL_DIR/gru_model \
+	--train_dir=$MODEL_DIR/gru_models/lr_1e-4 \
 	--frame_features=True --feature_names="rgb" \
-	--features_sizes="1024" --batch_size=128
+	--feature_sizes="1024" --batch_size=128 --base_learning_rate=0.0001 \
+  --num_epochs=10
 
+
+To run with audio features as well
+
+  python train.py --train_data_pattern='/a/data/yt8m/train*.tfrecord' --model=GruModel \
+  --train_dir=$MODEL_DIR/gru_models/audiovideo \
+  --frame_features=True --feature_names="rgb, audio" \
+  --feature_sizes="1024, 128" --batch_size=128 --base_learning_rate=0.0002 \
+  --num_epochs=10
 
 Then, validation.  Validation - usually we use the loss or accuracy on validation to choose hyperparameters on the model.
 
 	python eval.py --eval_data_pattern='/a/data/yt8m/validate*.tfrecord' --model=GruModel \
-	--train_dir=$MODEL_DIR/gru_model \
+	--train_dir=$MODEL_DIR/gru_models/lr_1e-4 \
 	--frame_features=True --feature_names="rgb" \
-	--features_sizes="1024" --batch_size=128 \
+	--feature_sizes="1024" --batch_size=128 \
 	--run_once=True
 
 Lastly, testing.  This produces predictions (scores over the classes per frame, I think).  If you just want to get the evaluation metrics, you can just run the above command, but on the test features.
@@ -52,7 +61,7 @@ Lastly, testing.  This produces predictions (scores over the classes per frame, 
 	python inference.py --input_data_pattern='/a/data/yt8m/test*.tfrecord' --model=GruModel \
 	--train_dir=$MODEL_DIR/gru_model \
 	--frame_features=True --feature_names="rgb" \
-	--features_sizes="1024" --batch_size=128 \
+	--feature_sizes="1024" --batch_size=128 \
 	--output_file=$MODEL_DIR/frame_level_logistic_model/predictions.csv
 
 #### Google Cloud

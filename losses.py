@@ -95,3 +95,49 @@ class SoftmaxLoss(BaseLoss):
       softmax_loss = tf.negative(tf.reduce_sum(
           tf.multiply(norm_float_labels, tf.log(softmax_outputs)), 1))
     return tf.reduce_mean(softmax_loss)
+
+class MultilabelLearningLoss(BaseLoss):
+  """Calculate the Multi-label loss between the predictions and the labels.
+  Loss considers correlation between similar labels, and penalizes for 
+  ranking of labels, not just presence.
+
+  From Zhang and Zhou, TKDE 2005
+
+  A reminder for me:
+
+     Args:
+      predictions: a 2-d tensor storing the prediction scores, in which
+        each row represents a sample in the mini-batch and each column
+        represents a class.
+      labels: a 2-d tensor storing the labels, which has the same shape
+        as the predictions. The labels must be in the range of 0 and 1.
+      unused_params: loss specific parameters.
+  """
+ 
+  def calculate_loss(self, predictions, labels, **unused_params):
+    with tf.name_scope("loss_mll"):
+
+      # epsilon = 10e-6
+      float_labels = tf.cast(labels, tf.float32)
+      # Get the number of tags per frame
+      num_tags = tf.reduce_sum(labels, 1)
+      #naive way of doing this.  Argh.  Need to do this faster, matrix math?
+      # let's do this really naively
+      (num_rows,num_classes) = tf.shape(predications)
+      assert((num_rows,num_classes) == tf.shape(labels))
+      ml_loss = 0.0
+      for i in num_rows:
+        row_loss = 0.0
+        num_tags = 0
+        for j in num_classes:
+          if labels[i,j] == 1:
+            num_tags += 1
+            for k in num_classes:
+              if labels[i,k] == 0:
+                row_loss += np.exp(-(predictions[i,j] - predictions[i,k]))
+        row_loss /= (num_tags * (num_classes - num_tags))
+        ml_loss += row_loss
+
+      # return tf.reduce_mean(tf.reduce_sum(cross_entropy_loss, 1))
+      return ml_loss
+
