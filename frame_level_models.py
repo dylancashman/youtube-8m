@@ -264,7 +264,6 @@ class GruModel(models.BaseModel):
                 ], state_is_tuple=False)
 
     loss = 0.0
-
     outputs, state = tf.nn.dynamic_rnn(stacked_gru, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
@@ -345,8 +344,8 @@ class GridLstmModel(models.BaseModel):
     stacked_grid_lstm = tf.contrib.rnn.MultiRNNCell(
             [
                 tf.contrib.grid_rnn.Grid2LSTMCell(
-                    lstm_size, forget_bias=1.0, use_peepholes=True, state_is_tuple=False)
-                ]*number_of_layers, state_is_tuple=False)
+                    lstm_size, forget_bias=1.0, use_peepholes=True, state_is_tuple=False, output_is_tuple=False)
+                for _ in range(number_of_layers)], state_is_tuple=False)
                 
 
     loss = 0.0
