@@ -20,7 +20,6 @@ import models
 import video_level_models
 import tensorflow as tf
 import model_utils as utils
-import numpy as np
 
 import tensorflow.contrib.slim as slim
 from tensorflow import flags
@@ -347,11 +346,11 @@ class GridLstmModel(models.BaseModel):
             [
                 tf.contrib.grid_rnn.Grid2LSTMCell(
                     lstm_size, forget_bias=1.0, use_peepholes=True)
-                ]*number_of_layers)
+                ]*number_of_layers, state_is_tuple=False)
                 
 
     loss = 0.0
-    outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, np.array(model_input),
+    outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
 
