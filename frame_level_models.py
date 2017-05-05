@@ -351,7 +351,8 @@ class GridLstmModel(models.BaseModel):
 
     loss = 0.0
     outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, model_input,
-                                       sequence_length=num_frames)
+                                       sequence_length=num_frames,
+                                       dtype=tf.float32)
 
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
