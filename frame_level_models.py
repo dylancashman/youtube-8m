@@ -344,8 +344,8 @@ class GridLstmModel(models.BaseModel):
     stacked_grid_lstm = tf.contrib.rnn.MultiRNNCell(
             [
                 tf.contrib.grid_rnn.Grid2LSTMCell(
-                    100, forget_bias=1.0, use_peepholes=True, state_is_tuple=False, output_is_tuple=False)
-                for _ in range(1)], state_is_tuple=False)
+                    lstm_size, forget_bias=1.0, use_peepholes=True, state_is_tuple=False, output_is_tuple=False)
+                for _ in range(number_of_layers)], state_is_tuple=False)
                 
 
     loss = 0.0
