@@ -350,7 +350,7 @@ class GridLstmModel(models.BaseModel):
                 
 
     loss = 0.0
-    outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, model_input,
+    outputs, state = tf.nn.dynamic_rnn(stacked_grid_lstm, np.array(model_input),
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
 
