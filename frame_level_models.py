@@ -47,6 +47,7 @@ flags.DEFINE_string("video_level_classifier_model", "MoeModel",
                     "classifier layer")
 flags.DEFINE_integer("lstm_cells", 1024, "Number of LSTM cells.")
 flags.DEFINE_integer("lstm_layers", 2, "Number of LSTM layers.")
+flags.DEFINE_bool("grid_weights_tied", False, "Tie the time and depth weights for less overhead")
 
 class FrameLevelLogisticModel(models.BaseModel):
 
@@ -344,7 +345,7 @@ class GridLstmModel(models.BaseModel):
     stacked_grid_lstm = tf.contrib.rnn.MultiRNNCell(
             [
                 tf.contrib.grid_rnn.Grid2LSTMCell(
-                    lstm_size, forget_bias=1.0, use_peepholes=True, state_is_tuple=False, output_is_tuple=False)
+                    lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
                 for _ in range(number_of_layers)], state_is_tuple=False)
                 
 
@@ -383,7 +384,7 @@ class GridGruModel(models.BaseModel):
     stacked_grid_gru = tf.contrib.rnn.MultiRNNCell(
             [
                 tf.contrib.grid_rnn.Grid2GRUCell(
-                    gru_size, state_is_tuple=False, output_is_tuple=False)
+                    gru_size, state_is_tuple=False, output_is_tuple=False, tied=FLAGS.grid_weights_tied)
                 for _ in range(number_of_layers)], state_is_tuple=False)
                 
 
