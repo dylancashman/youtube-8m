@@ -383,7 +383,7 @@ class GridGruModel(models.BaseModel):
     stacked_grid_gru = tf.contrib.rnn.MultiRNNCell(
             [
                 tf.contrib.grid_rnn.Grid2GRUCell(
-                    gru_size, forget_bias=1.0, state_is_tuple=False, output_is_tuple=False)
+                    gru_size, state_is_tuple=False, output_is_tuple=False)
                 for _ in range(number_of_layers)], state_is_tuple=False)
                 
 
