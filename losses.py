@@ -15,6 +15,7 @@
 """Provides definitions for non-regularized training or test losses."""
 
 import tensorflow as tf
+import numpy as np
 
 
 class BaseLoss(object):
@@ -113,6 +114,17 @@ class MultilabelLearningLoss(BaseLoss):
         as the predictions. The labels must be in the range of 0 and 1.
       unused_params: loss specific parameters.
   """
+
+  # broadcasting matmul courtesy of https://github.com/tensorflow/tensorflow/issues/216
+  # Nevermind, this just flat out does nothing and breaks everything.  Thanks.
+  def batch_vm(self, v, m):
+    shape = tf.shape(v)
+    rank = shape.get_shape()[0].value
+    v = tf.expand_dims(v, rank)
+
+    vm = tf.matmul(v, m)
+
+    return tf.reduce_sum(vm, rank-1)
  
   def calculate_loss(self, predictions, labels, **unused_params):
     with tf.name_scope("loss_mll"):
@@ -120,24 +132,59 @@ class MultilabelLearningLoss(BaseLoss):
       # epsilon = 10e-6
       float_labels = tf.cast(labels, tf.float32)
       # Get the number of tags per frame
-      num_tags = tf.reduce_sum(labels, 1)
+      # num_tags = tf.reduce_sum(labels, 1)
+
       #naive way of doing this.  Argh.  Need to do this faster, matrix math?
       # let's do this really naively
-      (num_rows,num_classes) = tf.shape(predications)
-      assert((num_rows,num_classes) == tf.shape(labels))
-      ml_loss = 0.0
-      for i in num_rows:
-        row_loss = 0.0
-        num_tags = 0
-        for j in num_classes:
-          if labels[i,j] == 1:
-            num_tags += 1
-            for k in num_classes:
-              if labels[i,k] == 0:
-                row_loss += np.exp(-(predictions[i,j] - predictions[i,k]))
-        row_loss /= (num_tags * (num_classes - num_tags))
-        ml_loss += row_loss
+      # # (num_rows,num_classes) = tf.shape(predictions)
+      # np_predictions = np.array(tf.unstack(predictions))
+      # np_labels = np.array(tf.unstack(labels))
 
+      # (num_rows, num_classes) = np_predictions.shape
+      # assert((num_rows,num_classes) == np_labels.shape)
+      # ml_loss = 0.0
+      # for i in num_rows:
+      #   row_loss = 0.0
+      #   num_tags = 0
+      #   for j in num_classes:
+      #     if np_labels[i,j] == 1:
+      #       num_tags += 1
+      #       for k in num_classes:
+      #         if np_labels[i,k] == 0:
+      #           row_loss += np.exp(-(np_predictions[i,j] - np_predictions[i,k]))
+      #   row_loss /= (num_tags * (num_classes - num_tags))
+      #   ml_loss += row_loss
+
+      # Looks like Tensorflow needs us to do this as tensor math
+      [num_rows, num_classes] = predictions.get_shape().as_list()
+
+      # tensorflow won't give me the shape in this way, num_rows comes back as a ?
+      # So for now, hard set batch size at 128
+      num_rows = 128
+
+      #r_pred = tf.reshape(predictions, [num_rows, num_classes, 1])
+      broadcaster = tf.ones([1, num_classes])
+      # cross differences, need to take difference from cross product, then exponentiate, then sum along
+      # rows and divide by |y_i| |\hat{y_i}| per row
+      cross_differences = tf.subtract(tf.batch_matmul(tf.reshape(predictions, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf.batch_matmul(tf.transpose(broadcaster), tf.reshape(predictions, [1, num_rows * num_classes]))))
+      cross_differences = tf.exp(tf.multiply(cross_differences, tf.constant(-1.0)))
+
+      # cross_label_mask is the xor of cross product of row labels
+      # xor can be adding together and then mod by 2
+      # cross_label_mask = tf.mod(tf.add(tf.matmul(tf.reshape(float_labels, [num_rows, num_classes, 1]), broadcaster), tf.matmul(tf.reshape(float_labels, [num_rows, 1, num_classes]), tf.transpose(broadcaster))), tf.constant(2))
+      cross_label_mask = tf.mod(tf.add(tf. batch_matmul(tf.reshape(float_labels, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf. batch_matmul(tf.transpose(broadcaster), tf.reshape(float_labels, [1, num_rows*num_classes])))), tf.constant(2.0))
+
+      # cross_differences is (N,C,C)
+      # cross_label_mask is (N,C,C)
+      # want to apply mask
+      subset_sum = tf.multiply(cross_differences, cross_label_mask)
+      subset_sum = tf.reshape(subset_sum, [num_rows, num_classes, num_classes])
+      cross_label_mask = tf.reshape(cross_label_mask, [num_rows, num_classes, num_classes])
+      instance_scale = tf.reduce_sum(cross_label_mask, [1,2])
+      instance_scale = tf.expand_dims(instance_scale, -1)
+      instance_scale = tf.expand_dims(instance_scale, -1)
+      # ml_loss = tf.reduce_sum(tf.divide(subset_sum, instance_scale))
+      ml_loss = tf.reduce_sum(subset_sum / instance_scale)
       # return tf.reduce_mean(tf.reduce_sum(cross_entropy_loss, 1))
       return ml_loss
 
