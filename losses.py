@@ -168,13 +168,13 @@ class MultilabelLearningLoss(BaseLoss):
       broadcaster = tf.ones([1, num_classes])
       # cross differences, need to take difference from cross product, then exponentiate, then sum along
       # rows and divide by |y_i| |\hat{y_i}| per row
-      cross_differences = tf.subtract(tf.batch_matmul(tf.reshape(predictions, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf.batch_matmul(tf.transpose(broadcaster), tf.reshape(predictions, [1, num_rows * num_classes]))))
+      cross_differences = tf.subtract(tf.matmul(tf.reshape(predictions, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf.matmul(tf.transpose(broadcaster), tf.reshape(predictions, [1, num_rows * num_classes]))))
       cross_differences = tf.exp(tf.multiply(cross_differences, tf.constant(-1.0)))
 
       # cross_label_mask is the xor of cross product of row labels
       # xor can be adding together and then mod by 2
       # cross_label_mask = tf.mod(tf.add(tf.matmul(tf.reshape(float_labels, [num_rows, num_classes, 1]), broadcaster), tf.matmul(tf.reshape(float_labels, [num_rows, 1, num_classes]), tf.transpose(broadcaster))), tf.constant(2))
-      cross_label_mask = tf.mod(tf.add(tf. batch_matmul(tf.reshape(float_labels, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf. batch_matmul(tf.transpose(broadcaster), tf.reshape(float_labels, [1, num_rows*num_classes])))), tf.constant(2.0))
+      cross_label_mask = tf.mod(tf.add(tf.matmul(tf.reshape(float_labels, [num_rows*num_classes, 1]), broadcaster), tf.transpose(tf.matmul(tf.transpose(broadcaster), tf.reshape(float_labels, [1, num_rows*num_classes])))), tf.constant(2.0))
 
       # cross_differences is (N,C,C)
       # cross_label_mask is (N,C,C)
