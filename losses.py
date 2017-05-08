@@ -160,7 +160,9 @@ class MultilabelLearningLoss(BaseLoss):
 
       # tensorflow won't give me the shape in this way, num_rows comes back as a ?
       # So for now, hard set batch size at 128
-      num_rows = 128
+      # ACTUALLY - computationally, we have to set this batch size to 1.
+      # num_rows = 128
+      num_rows = 1
 
       #r_pred = tf.reshape(predictions, [num_rows, num_classes, 1])
       broadcaster = tf.ones([1, num_classes])

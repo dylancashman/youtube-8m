@@ -72,15 +72,16 @@ First, training.
 
 	BUCKET_NAME=gs://${USER}_yt8m_train_bucket
 
-	JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
-	submit training $JOB_NAME \
-	--package-path=youtube-8m --module-name=youtube-8m.train \
-	--staging-bucket=$BUCKET_NAME --region=us-east1 \
-	--config=youtube-8m/cloudml-gpu.yaml \
-	-- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/traina0.tfrecord' \
-	--frame_features=True --model=FrameLevelLogisticModel --feature_names="rgb" \
-	--feature_sizes="1024" --batch_size=128 \
-	--train_dir=$BUCKET_NAME/yt8m_train_frame_level_logistic_model
+  JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
+  submit training $JOB_NAME \
+  --package-path=youtube-8m --module-name=youtube-8m.train \
+  --staging-bucket=$BUCKET_NAME --region=us-east1 \
+  --config=youtube-8m/cloudml-gpu.yaml \
+  -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord' \
+  --frame_features=True --model=GruModel --feature_names="rgb, audio" \
+  --feature_sizes="1024, 128" --batch_size=128 \
+  --train_dir=$BUCKET_NAME/yt8m_train_audiovideo_gru_model \
+  --base_learning_rate=0.0002 --num_epochs=10
 	
 I was having trouble seeing the status of this as it ran, so I needed to go into the web interface. Then, scrolling down on the left sidebar, under Jobs, click on ML Engine.  You should see a jobs status list.
 
