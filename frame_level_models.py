@@ -20,6 +20,7 @@ import models
 import video_level_models
 import tensorflow as tf
 import model_utils as utils
+import grid
 
 import tensorflow.contrib.slim as slim
 from tensorflow import flags
@@ -344,7 +345,7 @@ class GridLstmModel(models.BaseModel):
 
     stacked_grid_lstm = tf.contrib.rnn.MultiRNNCell(
             [
-                tf.contrib.grid_rnn.Grid2LSTMCell(
+                grid.Grid2LSTMCell(
                     lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
                 for _ in range(number_of_layers)], state_is_tuple=False)
                 
@@ -383,7 +384,7 @@ class GridGruModel(models.BaseModel):
 
     stacked_grid_gru = tf.contrib.rnn.MultiRNNCell(
             [
-                tf.contrib.grid_rnn.Grid2GRUCell(
+                grid.Grid2GRUCell(
                     gru_size, state_is_tuple=False, output_is_tuple=False, tied=FLAGS.grid_weights_tied)
                 for _ in range(number_of_layers)], state_is_tuple=False)
                 
