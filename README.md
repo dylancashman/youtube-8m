@@ -3,6 +3,22 @@ This is a fork of the github repo supporting the youtube 8m dataset.
 
 This will hopefully result in a submission to the Youtube 8M kaggle competition, final project for COMP 150DL
 
+## Running tensorboard
+
+First, bind one of your local ports to a remote port
+
+    ssh -N -f -L localhost:16006:localhost:6006 dcashm01@aws-gpu-4.eecs.tufts.edu
+
+Then, on the server, run 
+
+    tensorboard --logdir <path>
+
+Where the path is to the model directory
+
+For example:
+
+    tensorboard --logdir /a/data/yt8m/models_dir/gru_models/mll/
+
 ## Running locally
 
 This is largely based off of the guide given in the starter github.
