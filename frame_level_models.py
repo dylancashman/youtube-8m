@@ -397,9 +397,9 @@ class BidirectionalGridLstmModel(models.BaseModel):
     lstm_size = FLAGS.lstm_cells
     number_of_layers = FLAGS.lstm_layers
 
-    grid_lstm_fw grid.Grid2LSTMCell(
+    grid_lstm_fw = grid.Grid2LSTMCell(
                     lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
-    grid_lstm_bw grid.Grid2LSTMCell(
+    grid_lstm_bw = grid.Grid2LSTMCell(
                     lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
             
 
