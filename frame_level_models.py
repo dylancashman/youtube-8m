@@ -404,7 +404,7 @@ class BidirectionalGridLstmModel(models.BaseModel):
             
 
     loss = 0.0
-    tf.nn.bidirectional_dynamic_rnn(grid_lstm_fw, grid_lstm_bw, model_input,
+    outputs, state = tf.nn.bidirectional_dynamic_rnn(grid_lstm_fw, grid_lstm_bw, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
     state = tf.concat(state, 1)
