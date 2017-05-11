@@ -378,6 +378,46 @@ class GridLstmModel(models.BaseModel):
         vocab_size=vocab_size,
         **unused_params)
 
+class BidirectionalGridLstmModel(models.BaseModel):
+
+  def create_model(self, model_input, vocab_size, num_frames, **unused_params):
+    """Creates a model which uses a stack of grid-LSTM Units to represent the video.
+    Args:
+      model_input: A 'batch_size' x 'max_frames' x 'num_features' matrix of
+                   input features.
+      vocab_size: The number of classes in the dataset.
+      num_frames: A vector of length 'batch' which indicates the number of
+           frames for each video (before padding).
+
+    Returns:
+      A dictionary with a tensor containing the probability predictions of the
+      model in the 'predictions' key. The dimensions of the tensor are
+      'batch_size' x 'num_classes'.
+    """
+    lstm_size = FLAGS.lstm_cells
+    number_of_layers = FLAGS.lstm_layers
+
+    grid_lstm_fw grid.Grid2LSTMCell(
+                    lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
+    grid_lstm_bw grid.Grid2LSTMCell(
+                    lstm_size, forget_bias=1.0, use_peepholes=True, tied=FLAGS.grid_weights_tied, state_is_tuple=False, output_is_tuple=False)
+            
+
+    loss = 0.0
+    f.nn.bidirectional_dynamic_rnn(grid_lstm_fw, grid_lstm_bw, model_input,
+                                       sequence_length=num_frames,
+                                       dtype=tf.float32)
+    state = tf.concat(state, 1)
+
+
+    aggregated_model = getattr(video_level_models,
+                               FLAGS.video_level_classifier_model)
+
+    return aggregated_model().create_model(
+        model_input=state,
+        vocab_size=vocab_size,
+        **unused_params)
+
 class GridGruModel(models.BaseModel):
 
   def create_model(self, model_input, vocab_size, num_frames, **unused_params):
@@ -446,6 +486,8 @@ class BidirectionalGridGruModel(models.BaseModel):
     outputs, state = tf.nn.bidirectional_dynamic_rnn(grid_gru_fw, grid_gru_bw, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
+    state = tf.concat(state, 1)
+
 
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
