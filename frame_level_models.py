@@ -49,6 +49,9 @@ flags.DEFINE_string("video_level_classifier_model", "MoeModel",
 flags.DEFINE_integer("lstm_cells", 1024, "Number of LSTM cells.")
 flags.DEFINE_integer("lstm_layers", 2, "Number of LSTM layers.")
 flags.DEFINE_bool("grid_weights_tied", False, "Tie the time and depth weights for less overhead")
+flags.DEFINE_string(
+    "weight_initializer", "uniform_unit_scaling_initializer", "Weight initializing method, only in use now for the LSTM"
+  )
 
 class FrameLevelLogisticModel(models.BaseModel):
 
@@ -216,13 +219,22 @@ class LstmModel(models.BaseModel):
     """
     lstm_size = FLAGS.lstm_cells
     number_of_layers = FLAGS.lstm_layers
+    weight_initializer = FLAGS.weight_initializer
 
-    stacked_lstm = tf.contrib.rnn.MultiRNNCell(
-            [
-                tf.contrib.rnn.BasicLSTMCell(
-                    lstm_size, forget_bias=1.0, state_is_tuple=False)
-                for _ in range(number_of_layers)
-                ], state_is_tuple=False)
+    if weight_initializer == 'random':
+      stacked_lstm = tf.contrib.rnn.MultiRNNCell(
+                [
+                    tf.contrib.rnn.LSTMCell(
+                        lstm_size, forget_bias=1.0, state_is_tuple=False, initializer=tf.truncated_normal_initializer(stddev=1e-3))
+                    for _ in range(number_of_layers)
+                    ], state_is_tuple=False)
+    else: # uniform weight initializations by default, for some reason
+      stacked_lstm = tf.contrib.rnn.MultiRNNCell(
+              [
+                  tf.contrib.rnn.LSTMCell(
+                      lstm_size, forget_bias=1.0, state_is_tuple=False)
+                  for _ in range(number_of_layers)
+                  ], state_is_tuple=False)
 
     loss = 0.0
 
@@ -314,6 +326,9 @@ class BidirectionalGruModel(models.BaseModel):
     outputs, state = tf.nn.bidirectional_dynamic_rnn(gru_fw, gru_bw, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
+
+    # Outputs this in 2 dimensions
+    state = tf.concat(state, 1)
 
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
