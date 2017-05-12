@@ -3,6 +3,8 @@ This is a fork of the github repo supporting the youtube 8m dataset.
 
 This will hopefully result in a submission to the Youtube 8M kaggle competition, final project for COMP 150DL
 
+As the grid_rnn models do not currently work in the release version of tensorflow, we've pulled some code in from an unmerged pull request which resolves this issue (visible at https://github.com/phvu/tensorflow/tree/fix/grid-rnn). While this code can be included by compiling this branch from source and installing the modified version of tensorflow, it proved more practical to simply include the modified file relevant to this project in our repo (see grid_rnn_cell.py). Unfortunately, as a result of this, the grid-GRU model is still not completely functional and as such was not included in our paper or presentation.
+
 ## Running tensorboard
 
 First, bind one of your local ports to a remote port
