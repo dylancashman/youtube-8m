@@ -52,6 +52,9 @@ flags.DEFINE_bool("grid_weights_tied", False, "Tie the time and depth weights fo
 flags.DEFINE_string(
     "weight_initializer", "uniform_unit_scaling_initializer", "Weight initializing method, only in use now for the LSTM"
   )
+flags.DEFINE_string(
+    "frame_aggregation_strategy", "last_state", "Strategy for aggregating predictions on frames.  Default is to just pass the state of the last frame into a softmax."
+)
 
 class FrameLevelLogisticModel(models.BaseModel):
 
@@ -220,6 +223,7 @@ class LstmModel(models.BaseModel):
     lstm_size = FLAGS.lstm_cells
     number_of_layers = FLAGS.lstm_layers
     weight_initializer = FLAGS.weight_initializer
+    frame_aggregation_strategy = FLAGS.frame_aggregation_strategy
 
     if weight_initializer == 'random':
       stacked_lstm = tf.contrib.rnn.MultiRNNCell(
@@ -242,11 +246,24 @@ class LstmModel(models.BaseModel):
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
 
+    if frame_aggregation_strategy == "max":
+      # Here, we return the max over all states of the RNN
+      softmax_input = tf.reduce_max(outputs, axis=1)
+    elif frame_aggregation_strategy == "mean":
+      softmax_input = tf.reduce_mean(outputs, axis=1)
+    elif frame_aggregation_strategy == "linear_gain":
+      # Nontrivial
+    elif frame_aggregation_strategy == "local_pool":
+      # Based on Beyond Short Snippets Ng 2016
+    else:
+      # By default we pass the last state of the RNN
+      softmax_input = state
+
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
 
     return aggregated_model().create_model(
-        model_input=state,
+        model_input=softmax_input,
         vocab_size=vocab_size,
         **unused_params)
 
@@ -281,6 +298,8 @@ class GruModel(models.BaseModel):
     outputs, state = tf.nn.dynamic_rnn(stacked_gru, model_input,
                                        sequence_length=num_frames,
                                        dtype=tf.float32)
+
+    # Currently, we just pass on the final state of the GRU.
 
     aggregated_model = getattr(video_level_models,
                                FLAGS.video_level_classifier_model)
